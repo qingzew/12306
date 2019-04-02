@@ -2,9 +2,10 @@
 from time import sleep
 
 from config.ticketConf import _get_yaml
-from damatuCode.damatuWeb import DamatuApi
 from inter.GetPassCodeNewOrderAndLogin import getPassCodeNewOrderAndLogin
 from inter.GetRandCode import getRandCode
+from inter.LoginAysnSuggest import loginAysnSuggest
+from inter.LoginConf import loginConf
 from myException.UserPasswordException import UserPasswordException
 from myException.balanceException import balanceException
 
@@ -105,26 +106,33 @@ class GoLogin:
         :param passwd: 密码
         :return:
         """
-        if self.is_auto_code and self.auto_code_type == 1:
-            balance = DamatuApi(_get_yaml()["auto_code_account"]["user"], _get_yaml()["auto_code_account"]["pwd"]).getBalance()
-            if int(balance) < 40:
-                raise balanceException(u'余额不足，当前余额为: {}'.format(balance))
+        # if self.is_auto_code and self.auto_code_type == 1:
+        #     balance = DamatuApi(_get_yaml()["auto_code_account"]["user"], _get_yaml()["auto_code_account"]["pwd"]).getBalance()
+        #     if int(balance) < 40:
+        #         raise balanceException(u'余额不足，当前余额为: {}'.format(balance))
         user, passwd = _get_yaml()["set"]["12306account"][0]["user"], _get_yaml()["set"]["12306account"][1]["pwd"]
         if not user or not passwd:
             raise UserPasswordException(u"温馨提示: 用户名或者密码为空，请仔细检查")
         login_num = 0
         while True:
-            result = getPassCodeNewOrderAndLogin(session=self.session, imgType="login")
-            if not result:
-                continue
-            self.randCode = getRandCode(self.is_auto_code, self.auto_code_type, result)
-            login_num += 1
-            self.auth()
-            if self.codeCheck():
-                uamtk = self.baseLogin(user, passwd)
-                if uamtk:
-                    self.getUserName(uamtk)
-                    break
+            if loginConf(self.session):
+                result = getPassCodeNewOrderAndLogin(session=self.session, imgType="login")
+                if not result:
+                    continue
+                self.randCode = getRandCode(self.is_auto_code, self.auto_code_type, result)
+                login_num += 1
+                self.auth()
+                if self.codeCheck():
+                    uamtk = self.baseLogin(user, passwd)
+                    if uamtk:
+                        self.getUserName(uamtk)
+                        break
+            else:
+                loginAysnSuggest(self.session, username=user, password=passwd)
+                login_num += 1
+                break
+
+
 
 # if __name__ == "__main__":
 #     # main()
